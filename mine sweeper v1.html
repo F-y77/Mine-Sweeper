@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫雷游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #game {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 2px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #ccc;
+            border: 1px solid #999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .cell.revealed {
+            background-color: #eee;
+            border: 1px solid #ccc;
+        }
+        .cell.mine {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="game"></div>
+
+    <script>
+        const game = document.getElementById('game');
+        const rows = 10;
+        const cols = 10;
+        const mines = 10;
+        let board = [];
+        let revealedCount = 0;
+
+        function createBoard() {
+            for (let r = 0; r < rows; r++) {
+                let row = [];
+                for (let c = 0; c < cols; c++) {
+                    row.push({
+                        isMine: false,
+                        isRevealed: false,
+                        adjacentMines: 0
+                    });
+                }
+                board.push(row);
+            }
+
+            // 放置地雷
+            let minesPlaced = 0;
+            while (minesPlaced < mines) {
+                let r = Math.floor(Math.random() * rows);
+                let c = Math.floor(Math.random() * cols);
+                if (!board[r][c].isMine) {
+                    board[r][c].isMine = true;
+                    minesPlaced++;
+                }
+            }
+
+            // 计算每个单元格周围的地雷数量
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!board[r][c].isMine) {
+                        let count = 0;
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                let nr = r + dr;
+                                let nc = c + dc;
+                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].isMine) {
+                                    count++;
+                                }
+                            }
+                        }
+                        board[r][c].adjacentMines = count;
+                    }
+                }
+            }
+        }
+
+        function renderBoard() {
+            game.innerHTML = '';
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    if (board[r][c].isRevealed) {
+                        cell.classList.add('revealed');
+                        if (board[r][c].isMine) {
+                            cell.classList.add('mine');
+                            cell.textContent = '💣';
+                        } else {
+                            cell.textContent = board[r][c].adjacentMines || '';
+                        }
+                    }
+                    cell.addEventListener('click', handleCellClick);
+                    game.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            let row = parseInt(event.target.dataset.row);
+            let col = parseInt(event.target.dataset.col);
+            if (board[row][col].isRevealed) return;
+
+            board[row][col].isRevealed = true;
+            revealedCount++;
+
+            if (board[row][col].isMine) {
+                alert('游戏结束！你踩到地雷了！');
+                renderBoard();
+                return;
+            }
+
+            if (revealedCount === rows * cols - mines) {
+                alert('恭喜你，你赢了！');
+                renderBoard();
+                return;
+            }
+
+            if (board[row][col].adjacentMines === 0) {
+                revealEmptyCells(row, col);
+            }
+
+            renderBoard();
+        }
+
+        function revealEmptyCells(row, col) {
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = row + dr;
+                    let nc = col + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !board[nr][nc].isRevealed) {
+                        board[nr][nc].isRevealed = true;
+                        revealedCount++;
+                        if (board[nr][nc].adjacentMines === 0) {
+                            revealEmptyCells(nr, nc);
+                        }
+                    }
+                }
+            }
+        }
+
+        createBoard();
+        renderBoard();
+    </script>
+</body>
+</html>

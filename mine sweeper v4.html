@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫雷游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #game {
+            display: grid;
+            gap: 2px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #ccc;
+            border: 1px solid #999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .cell.revealed {
+            background-color: #eee;
+            border: 1px solid #ccc;
+        }
+        .cell.mine {
+            background-color: red;
+        }
+        .cell.flagged {
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <select id="difficulty">
+        <option value="easy">简单</option>
+        <option value="medium">中等</option>
+        <option value="hard">困难</option>
+        <option value="custom">自定义</option>
+    </select>
+    <div id="customSettings" style="display: none;">
+        <label for="customRows">行数:</label>
+        <input type="number" id="customRows" min="5" max="30" value="10">
+        <label for="customCols">列数:</label>
+        <input type="number" id="customCols" min="5" max="30" value="10">
+        <label for="customMines">地雷数:</label>
+        <input type="number" id="customMines" min="5" max="100" value="20">
+    </div>
+    <button onclick="startGame()">开始游戏</button>
+    <div id="game"></div>
+
+    <script>
+        const game = document.getElementById('game');
+        let rows, cols, mines;
+        let board = [];
+        let revealedCount = 0;
+
+        function startGame() {
+            const difficulty = document.getElementById('difficulty').value;
+            switch (difficulty) {
+                case 'easy':
+                    rows = 8;
+                    cols = 8;
+                    mines = 10;
+                    break;
+                case 'medium':
+                    rows = 12;
+                    cols = 12;
+                    mines = 25;
+                    break;
+                case 'hard':
+                    rows = 16;
+                    cols = 16;
+                    mines = 40;
+                    break;
+                case 'custom':
+                    rows = parseInt(document.getElementById('customRows').value);
+                    cols = parseInt(document.getElementById('customCols').value);
+                    mines = parseInt(document.getElementById('customMines').value);
+                    break;
+            }
+            createBoard();
+            renderBoard();
+        }
+
+        function createBoard() {
+            board = [];
+            revealedCount = 0;
+            for (let r = 0; r < rows; r++) {
+                let row = [];
+                for (let c = 0; c < cols; c++) {
+                    row.push({
+                        isMine: false,
+                        isRevealed: false,
+                        isFlagged: false,
+                        adjacentMines: 0
+                    });
+                }
+                board.push(row);
+            }
+
+            let minesPlaced = 0;
+            while (minesPlaced < mines) {
+                let r = Math.floor(Math.random() * rows);
+                let c = Math.floor(Math.random() * cols);
+                if (!board[r][c].isMine) {
+                    board[r][c].isMine = true;
+                    minesPlaced++;
+                }
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!board[r][c].isMine) {
+                        let count = 0;
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                let nr = r + dr;
+                                let nc = c + dc;
+                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].isMine) {
+                                    count++;
+                                }
+                            }
+                        }
+                        board[r][c].adjacentMines = count;
+                    }
+                }
+            }
+        }
+
+        function renderBoard() {
+            game.innerHTML = '';
+            game.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+            game.style.gridTemplateRows = `repeat(${rows}, 30px)`;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    if (board[r][c].isRevealed) {
+                        cell.classList.add('revealed');
+                        if (board[r][c].isMine) {
+                            cell.classList.add('mine');
+                            cell.textContent = '💣';
+                        } else {
+                            cell.textContent = board[r][c].adjacentMines || '';
+                        }
+                    } else if (board[r][c].isFlagged) {
+                        cell.classList.add('flagged');
+                        cell.textContent = '🚩';
+                    }
+                    cell.addEventListener('click', handleCellClick);
+                    cell.addEventListener('contextmenu', handleCellRightClick);
+                    game.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            let row = parseInt(event.target.dataset.row);
+            let col = parseInt(event.target.dataset.col);
+            if (board[row][col].isRevealed || board[row][col].isFlagged) return;
+
+            board[row][col].isRevealed = true;
+            revealedCount++;
+
+            if (board[row][col].isMine) {
+                alert('游戏结束！你踩到地雷了！');
+                renderBoard();
+                return;
+            }
+
+            if (revealedCount === rows * cols - mines) {
+                alert('恭喜你，你赢了！');
+                renderBoard();
+                return;
+            }
+
+            if (board[row][col].adjacentMines === 0) {
+                revealEmptyCells(row, col);
+            }
+
+            renderBoard();
+        }
+
+        function handleCellRightClick(event) {
+            event.preventDefault();
+            let row = parseInt(event.target.dataset.row);
+            let col = parseInt(event.target.dataset.col);
+            if (board[row][col].isRevealed) return;
+
+            board[row][col].isFlagged = !board[row][col].isFlagged;
+            renderBoard();
+        }
+
+        function revealEmptyCells(row, col) {
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = row + dr;
+                    let nc = col + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !board[nr][nc].isRevealed) {
+                        board[nr][nc].isRevealed = true;
+                        revealedCount++;
+                        if (board[nr][nc].adjacentMines === 0) {
+                            revealEmptyCells(nr, nc);
+                        }
+                    }
+                }
+            }
+        }
+
+        document.getElementById('difficulty').addEventListener('change', function() {
+            const customSettings = document.getElementById('customSettings');
+            if (this.value === 'custom') {
+                customSettings.style.display = 'block';
+            } else {
+                customSettings.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
