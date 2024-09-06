@@ -2,7 +2,11 @@
 
 #游戏地址，欢迎大家来玩
 
-y77.minesweeper.com
+https://f-y77.github.io/Mine-Sweeper-v10.0-by-y77/
+
+https://f-y77.github.io/Mine-Sweeper-v10.0-by-y77/
+
+https://f-y77.github.io/Mine-Sweeper-v10.0-by-y77/
 
 #快捷键：
 
