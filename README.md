@@ -3,9 +3,6 @@
 #游戏地址，欢迎大家来玩
 
 y77.minesweeper.com
-y77.minesweeper.com
-y77.minesweeper.com
-
 
 #快捷键：
 
